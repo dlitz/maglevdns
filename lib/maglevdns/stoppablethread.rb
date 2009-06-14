@@ -15,30 +15,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #++
-
-require 'maglevdns/stoppablethread'
+require 'thread'
 
 module MaglevDNS
-  class DispatcherThread < StoppableThread
-    def initialize(request_queue, thread_container)
-      @request_queue = request_queue
-      @thread_container = thread_container
-      super
-    end
+  class StoppableThread < ::Thread
 
-    def request_stop
-      super { @request_queue << :NOOP }
-    end
-
-    private
-    def thread_main
-      loop do
-        request = @request_queue.shift
-        check_stop
-        next if request == :NOOP
-        @thread_container << RequestHandlerThread.new(request)
-        @thread_container.prune!
+    def initialize
+      @mutex = ::Mutex.new
+      @stop_requested = false
+      @stop_pipe_r, @stop_pipe_w = ::IO::pipe # pipe used for breaking out of select() calls
+      super do
+        catch (:STOP_THREAD) { thread_main }
+      ensure
+        @stop_pipe_r.close
+        @stop_pipe_r = nil
       end
     end
+
+    # Ask the thread to exit
+    def request_stop
+      @mutex.synchronize {
+        @stop_requested = true
+        @stop_pipe_w.close unless @stop_pipe_w.closed?  # send a 'signal' to the thread
+        yield if block_given?
+      }
+    end
+
+    protected
+
+    # Throw :STOP_THREAD if request_stop has been called.
+    def check_stop
+      @mutex.synchronize { throw :STOP_THREAD if @stop_requested }
+    end
+
+    def thread_main
+      raise "thread_main not implemented"
+    end
+
   end
 end

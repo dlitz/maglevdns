@@ -15,40 +15,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #++
-require 'thread'
+require 'maglevdns/stoppablethread'
 
 module MaglevDNS
-  class RequestHandlerThread < Thread
+  class RequestHandlerThread < StoppableThread
 
     def initialize(request)
       @request = request
-      @mutex = Mutex.new
-      @stop_requested = false
-      super { thread_main }
-    end
-
-    # Ask the thread to exit
-    def request_stop
-      @mutex.synchronize {
-        @stop_requested = true
-      }
-    end
-
-    # Throw :STOP_THREAD if request_stop has been called.
-    def check_stop
-      @mutex.synchronize { throw :STOP_THREAD if @stop_requested }
+      super
     end
 
     private
     def thread_main
-      catch :STOP_THREAD do
-        controller = ApplicationController.new(@request, self)
-        begin
-          controller.handle_query
-        rescue BaseController::ReturnResponse => e
-          unless e.response.nil?
-            @request[:respond_proc].call(@request, e.response.to_s)
-          end
+      controller = ApplicationController.new(@request, self)
+      begin
+        controller.handle_query
+      rescue BaseController::ReturnResponse => e
+        unless e.response.nil?
+          @request[:respond_proc].call(@request, e.response.to_s)
         end
       end
     end
