@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.email = ["dlitz@dlitz.net"]
   s.homepage = "http://www.dlitz.net/software/maglevdns"
   s.require_path = 'lib'
-  s.files = Dir.glob ['lib/**/*.rb', 'templates/**/*']
+  s.files = Dir.glob ['COPYING.*', 'lib/**/*.rb', 'templates/**/*']
   s.executables = ['maglevdns']
   s.has_rdoc = true
   s.rubyforge_project = "maglevdns"
