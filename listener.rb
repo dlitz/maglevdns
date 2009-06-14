@@ -6,7 +6,7 @@ class UDPListenerThread < Thread
   def initialize(options={})
     @listen_address = {:family => options[:address_family], :bind_address => options[:bind_address]}
     @request_queue = options[:request_queue]
-    @mutex = ::Mutex.new
+    @mutex = Mutex.new
     @stop_requested = false
     @stop_pipe_r, @stop_pipe_w = IO::pipe   # pipe used for stopping the thread during select()
     super { thread_main }
@@ -23,14 +23,21 @@ class UDPListenerThread < Thread
   private
   def thread_main
     catch (:STOP_THREAD) do
-      ::UDPSocket.open(@listen_address[:family]) do |sock|
+      UDPSocket.open(@listen_address[:family]) do |sock|
         sock.bind(*@listen_address[:bind_address])
         loop do
-          rr = ::IO::select([@stop_pipe_r, sock], [], [])[0]
+          rr = IO::select([@stop_pipe_r, sock], [], [])[0]
           check_stop
           raise "BUG: socket not returned by select()" unless rr.include?(sock)
           msg, addr = sock.recvfrom(65535)
-          @request_queue << {:listener => self, :raw_message => msg, :address => addr}
+          @request_queue << {
+            :listener => self,
+            :raw_message => msg,
+            :tcp => false,
+            :address => addr,
+            :sock => sock,
+            :respond_proc => proc {|*args| respond(*args) },
+          }
         end
       end
     end
@@ -43,6 +50,8 @@ class UDPListenerThread < Thread
   def check_stop
     @mutex.synchronize { throw :STOP_THREAD if @stop_requested }
   end
-end
 
-#u = UDPListenerThread.new(::Socket::AF_INET6, "::", 5354)
+  def respond(request, raw_response)
+    request[:sock].send(raw_response, 0, request[:address][3], request[:address][1])
+  end
+end

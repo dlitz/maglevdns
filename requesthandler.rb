@@ -1,5 +1,6 @@
 require 'thread'
-require 'routingcontext'
+require 'basecontroller'
+require 'app_controller'
 
 class RequestHandlerThread < Thread
 
@@ -17,22 +18,23 @@ class RequestHandlerThread < Thread
     }
   end
 
-  protected
-
-  def request
-    @request
-  end
-
-  private
-  def thread_main
-    query = DNS::Message.new(@request[:raw_message])
-    routing_context = RoutingContext.new(query, @request[:address])
-    routing_result = eval(File.read("routes.rb"), routing_context.binding, "routes.rb", 1)
-    puts "routing result: #{routing_result.inspect}"
-  end
-
   # Throw :STOP_THREAD if request_stop has been called.
   def check_stop
     @mutex.synchronize { throw :STOP_THREAD if @stop_requested }
   end
+
+  private
+  def thread_main
+    catch :STOP_THREAD do
+      controller = ApplicationController.new(@request, self)
+      begin
+        controller.handle_query
+      rescue BaseController::ReturnResponse => e
+        unless e.response.nil?
+          @request[:respond_proc].call(@request, e.response.to_s)
+        end
+      end
+    end
+  end
+
 end

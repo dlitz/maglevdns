@@ -339,7 +339,7 @@ module DNS
     end
 
     def raw_rr_at(offset)
-      length = raw_name_at(offset+length).length  # NAME
+      length = raw_name_at(offset).length  # NAME
       length += 2   # TYPE
       length += 2   # CLASS
       length += 4   # TTL
@@ -405,6 +405,10 @@ module DNS
       rebuild_question_cache
       rebuild_rr_cache
       return nil
+    end
+
+    def to_s
+      return @msg
     end
   end
 

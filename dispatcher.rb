@@ -1,7 +1,6 @@
 require 'scratch'   # FIXME: rename this
 require 'listener'
 require 'threadcontainer'
-#require 'requestrouter'  # FIXME
 require 'requesthandler'
 
 require 'socket'
@@ -25,7 +24,7 @@ class DispatcherThread < Thread
 
   private
   def thread_main
-    catch(:STOP_THREAD) do
+    catch :STOP_THREAD do
       loop do
         request = @request_queue.shift
         check_stop
@@ -41,6 +40,8 @@ class DispatcherThread < Thread
     @mutex.synchronize { throw :STOP_THREAD if @stop_requested }
   end
 end
+
+Thread.abort_on_exception = true
 
 request_queue = Queue.new
 
