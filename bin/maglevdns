@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+require 'rubygems/installer'
+require 'fileutils'
+require 'pathname'
+require 'maglevdns'
+
+def exit_usage(rc=1)
+  $stderr.puts "Usage: #{$0} /path/to/your/app"
+  exit rc
+end
+
+def install_script(src_filename, dest_filename)
+  ruby_executable = File.join(Config::CONFIG['bindir'], Config::CONFIG['ruby_install_name'])
+
+  if File.directory?(dest_filename)
+    # Append filename to destination if it's a directory
+    dest_filename = File.join(dest_filename, File.basename(src_filename))
+  end
+
+  puts "  create #{dest_filename}"
+  File.open(src_filename, "r") do |src|
+    File.open(dest_filename, "w") do |dest|
+      # shebang line
+      dest << "#!" + ruby_executable + "\n"
+      line = src.readline rescue ""
+      dest << line unless line.start_with? "#!"
+
+      # Remaining lines
+      until src.eof?
+        dest << src.readline
+      end
+    end
+  end
+  FileUtils.chmod((0777 & ~File.umask), dest_filename)   # make the file executable
+  return nil
+end
+
+def mkdir(path)
+  puts "  create #{path}"
+  FileUtils::mkdir path
+end
+
+def cp(src, dest)
+  if File.directory?(dest)
+    dest = File.join(dest, File.basename(src))
+  end
+  puts "  create #{dest}"
+  FileUtils::cp src, dest
+end
+
+app_path = ARGV[0]
+exit_usage if app_path.nil?
+
+topdir = Pathname.new(app_path)
+
+mkdir topdir
+mkdir topdir+"app"
+mkdir topdir+"script"
+cp MaglevDNS::MAGLEV_TEMPLATES_DIR+"/app_controller.rb", topdir+"app"
+install_script MaglevDNS::MAGLEV_TEMPLATES_DIR+"/server", topdir+"script"
