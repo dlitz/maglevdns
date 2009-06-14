@@ -1,7 +1,43 @@
-require 'socket'
+#require 'socket'
 require 'enumerator'
+require 'strscan'
 
 module DNS
+
+  # Given a human-readable DNS name as a string, return the corresponding
+  # array of labels.
+  #
+  # Example:
+  #   parse_display_name('john\.smith.example.com') #=> ["john.smith", "example", "com"]
+  def self.parse_display_name(display_name)
+    name = []
+    label = ""
+    s = StringScanner.new(display_name)
+    until s.eos?
+      if s.scan /\A[^.\\]+/
+        label += s.matched
+      elsif s.scan /\A\./
+        name << label
+        label = ""
+      elsif s.scan /\A\\(\d{1,3})/    # \DDD (decimal octet)
+        label += $1.to_i.chr
+      elsif s.scan /\A\\([^\d])/    # \DDD (decimal octet)
+        label += $1
+      end
+    end
+    name << label unless label.empty?
+    return name.select{ |label| not label.empty? }
+  end
+
+  # Given an array of labels, return the corresponding human-readable DNS
+  # name.
+  #
+  # Example:
+  #   encode_display_name(["john.smith", "example", "com"]) #=> 'john\.smith.example.com'
+  def self.encode_display_name(labels)
+    return name.map{|label| label.gsub(/([\\.])/, '\\\1')}.join(".").select{ |label| not label.empty? }
+  end
+
   module HeaderParser
 
     # RCODE values
@@ -358,9 +394,8 @@ module DNS
     include QuestionParser
     include ResourceRecordParser
 
-    def initialize(raw_message, remote_addr=nil)
+    def initialize(raw_message)
       @msg = raw_message
-      @remote_addr = remote_addr
       @cache = {}
       rebuild_cache
     end
@@ -375,39 +410,39 @@ module DNS
 
 end
 
-class IncomingQuestion
-  attr_reader :message, :remote_address
+#class IncomingQuestion
+#  attr_reader :message, :remote_address
+#
+#  def initialize(message, client_address)
+#    @message = message
+#    @client_address = client_address
+#  end
+#
+#end
 
-  def initialize(message, client_address)
-    @message = message
-    @client_address = client_address
-  end
-
-end
-
-port = ARGV[0].to_i
-raise ArgumentError.new("Port must be between 1 and 65535") unless port >= 1 and port <= 0xffff
-
-UDPSocket.open(Socket::AF_INET6) do |sock|
-  sock.bind("::", port)
-  loop do
-    msg, addr = sock.recvfrom(65535)
-    puts "Incoming message (length=#{msg.length}) from #{addr.inspect}: #{msg.inspect}"
-    m = DNS::Message.new(msg, addr)
-    puts "raw_qname: #{m.raw_qname.inspect}"
-    puts "qname: #{m.qname.inspect}"
-    puts "qtype: #{m.qtype}"
-    puts "qclass: #{m.qclass}"
-    m.answer.each { |rr|
-      puts "answer rr: #{rr.inspect}"
-    }
-    m.authority.each { |rr|
-      puts "authority rr: #{rr.inspect}"
-    }
-    m.additional.each { |rr|
-      puts "additional rr: #{rr.inspect}"
-    }
-    question = IncomingQuestion.new(m, addr)
-
-  end
-end
+#port = ARGV[0].to_i
+#raise ArgumentError.new("Port must be between 1 and 65535") unless port >= 1 and port <= 0xffff
+#
+#UDPSocket.open(Socket::AF_INET6) do |sock|
+#  sock.bind("::", port)
+#  loop do
+#    msg, addr = sock.recvfrom(65535)
+#    puts "Incoming message (length=#{msg.length}) from #{addr.inspect}: #{msg.inspect}"
+#    m = DNS::Message.new(msg, addr)
+#    puts "raw_qname: #{m.raw_qname.inspect}"
+#    puts "qname: #{m.qname.inspect}"
+#    puts "qtype: #{m.qtype}"
+#    puts "qclass: #{m.qclass}"
+#    m.answer.each { |rr|
+#      puts "answer rr: #{rr.inspect}"
+#    }
+#    m.authority.each { |rr|
+#      puts "authority rr: #{rr.inspect}"
+#    }
+#    m.additional.each { |rr|
+#      puts "additional rr: #{rr.inspect}"
+#    }
+#    question = IncomingQuestion.new(m, addr)
+#
+#  end
+#end
