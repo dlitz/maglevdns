@@ -23,6 +23,7 @@ require 'maglevdns/basecontroller'
 require 'maglevdns/dispatcher'
 require 'maglevdns/stoppablethread'
 require 'maglevdns/udplistener'
+require 'maglevdns/tcplistener'
 require 'maglevdns/dns'
 require 'maglevdns/main'
 
