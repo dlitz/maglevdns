@@ -20,14 +20,15 @@ require 'maglevdns/stoppablethread'
 module MaglevDNS
   class RequestHandlerThread < StoppableThread
 
-    def initialize(request)
+    def initialize(request, request_handler_class)
       @request = request
+      @request_handler_class = request_handler_class
       super
     end
 
     private
     def thread_main
-      controller = ApplicationController.new(@request, self)
+      controller = @request_handler_class.new(@request, self)
       begin
         controller.handle_query
       rescue BaseController::ReturnResponse => e

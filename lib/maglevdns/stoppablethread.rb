@@ -24,11 +24,13 @@ module MaglevDNS
       @mutex = ::Mutex.new
       @stop_requested = false
       @stop_pipe_r, @stop_pipe_w = ::IO::pipe # pipe used for breaking out of select() calls
-      super do
-        catch (:STOP_THREAD) { thread_main }
-      ensure
-        @stop_pipe_r.close
-        @stop_pipe_r = nil
+      super() do
+        begin
+          catch(:STOP_THREAD) { thread_main }
+        ensure
+          @stop_pipe_r.close
+          @stop_pipe_r = nil
+        end
       end
     end
 

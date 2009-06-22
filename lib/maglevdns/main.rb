@@ -21,8 +21,7 @@ require 'thread'
 require 'maglevdns'
 
 module MaglevDNS
-  def self.main
-    require './app/app_controller'
+  def self.main(request_handler_class)
 
     Thread.abort_on_exception = true
 
@@ -34,10 +33,10 @@ module MaglevDNS
       :bind_address => ["::", 5354],
       :request_queue => request_queue
     )
-    thread_container << DispatcherThread.new(request_queue, thread_container)
+    thread_container << DispatcherThread.new(request_queue, thread_container, request_handler_class)
 
     puts "Press enter to stop:"
-    gets
+    $stdin.gets
 
     thread_container.request_stop
     thread_container.join

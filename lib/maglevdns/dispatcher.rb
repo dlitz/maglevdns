@@ -20,12 +20,14 @@ require 'maglevdns/stoppablethread'
 
 module MaglevDNS
   class DispatcherThread < StoppableThread
-    def initialize(request_queue, thread_container)
+    def initialize(request_queue, thread_container, request_handler_class)
       @request_queue = request_queue
       @thread_container = thread_container
-      super
+      @request_handler_class = request_handler_class
+      super()
     end
 
+    # Ask this thread to stop.
     def request_stop
       super { @request_queue << :NOOP }
     end
@@ -36,7 +38,7 @@ module MaglevDNS
         request = @request_queue.shift
         check_stop
         next if request == :NOOP
-        @thread_container << RequestHandlerThread.new(request)
+        @thread_container << RequestHandlerThread.new(request, @request_handler_class)
         @thread_container.prune!
       end
     end

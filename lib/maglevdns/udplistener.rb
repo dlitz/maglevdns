@@ -25,7 +25,7 @@ module MaglevDNS
     def initialize(options={})
       @listen_address = {:family => options[:address_family], :bind_address => options[:bind_address]}
       @request_queue = options[:request_queue]
-      super
+      super()
     end
 
     private

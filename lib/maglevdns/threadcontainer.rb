@@ -18,12 +18,15 @@
 require 'thread'
 
 module MaglevDNS
+
+  # Keeps track of running threads.
   class ThreadContainer
     def initialize
       @mutex = Mutex.new
       @threads = []
     end
 
+    # Track the specified thread.
     def << (thread)
       @mutex.synchronize {
         @threads << thread
@@ -31,6 +34,7 @@ module MaglevDNS
       return self
     end
 
+    # Invoke the request_stop method on all tracked threads.
     def request_stop
       @mutex.synchronize {
         for thread in @threads
@@ -40,6 +44,7 @@ module MaglevDNS
       return nil
     end
 
+    # Wait for all tracked threads to complete.
     def join
       @mutex.synchronize {
         for thread in @threads
