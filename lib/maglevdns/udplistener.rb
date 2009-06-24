@@ -23,7 +23,10 @@ module MaglevDNS
   class UDPListenerThread < StoppableThread
 
     def initialize(options={})
-      @listen_address = {:family => options[:address_family], :bind_address => options[:bind_address]}
+      @listen_address = {
+        :family => options[:address_family],
+        :bind_args => [options[:host], options[:port]],
+      }
       @request_queue = options[:request_queue]
       super()
     end
@@ -31,7 +34,7 @@ module MaglevDNS
     private
     def thread_main
       UDPSocket.open(@listen_address[:family]) do |sock|
-        sock.bind(*@listen_address[:bind_address])
+        sock.bind(*@listen_address[:bind_args])
         loop do
           rr = IO::select([@stop_pipe_r, sock], [], [])[0]
           check_stop
@@ -53,7 +56,6 @@ module MaglevDNS
         end
       end
     end
-
 
   end
 end

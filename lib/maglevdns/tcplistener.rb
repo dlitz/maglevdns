@@ -23,36 +23,39 @@ module MaglevDNS
   class TCPListenerThread < StoppableThread
 
     def initialize(options={})
-      @listen_address = {:family => options[:address_family], :bind_address => options[:bind_address]}
+      @listen_address = {
+        :family => options[:address_family],
+        :bind_args => [Socket::pack_sockaddr_in(options[:port], options[:host])],
+      }
       @request_queue = options[:request_queue]
-      super
+      super()
     end
 
     private
     def thread_main
       Socket.open(@listen_address[:family], Socket::Constants::SOCK_STREAM, 0) do |sock|
-        sock.bind(*@listen_address[:bind_address])
+        sock.bind(*@listen_address[:bind_args])
         sock.listen(10) # XXX - hard-coded backlog
         loop do
           rr = IO::select([@stop_pipe_r, sock], [], [])[0]
           check_stop
           raise "BUG: socket not returned by select()" unless rr.include?(sock)
-          client = sock.accept()
-          puts "client: #{client.inspect}"
+          client_sock, client_addr = sock.accept()
+          port, host = Socket::unpack_sockaddr_in(client_addr)
+          ipaddr = IPAddr.new(host)
+          # TODO FIXME: add thread to ThreadContainer
+          TCPConnectionThread.new(ipaddr.family, ipaddr.to_s, port, client_sock, @request_queue)
 #          @request_queue << {
 #            :listener => self,
 #            :raw_message => msg,
 #            :tcp => true,
-#            :address => addr,
-#            :sock => sock,
+#            :address => client_addr,
+#            :sock => client_sock,
 #            :respond_lambda => lambda {|*args| respond(*args) },
 #          }
         end
       end
     end
 
-#    def respond(request, raw_response)
-#      request[:sock].send(raw_response, 0, request[:address][3], request[:address][1])
-#    end
   end
 end

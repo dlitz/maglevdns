@@ -16,25 +16,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #++
 
-# Version information
-require 'maglevdns/version'
+module MaglevDNS
 
-# Abstract data types and base classes
-require 'maglevdns/exception'
-require 'maglevdns/dns'
-require 'maglevdns/request'
-require 'maglevdns/stoppablethread'
+  # Thread for handling incoming TCP connections
+  class TCPConnectionThread < StoppableThread
 
-# DNS packets flow through the following files (in reverse order)
-require 'maglevdns/scriptevalcontext'
-require 'maglevdns/requesthandler'
-require 'maglevdns/requesthandlerthread'
-require 'maglevdns/threadcontainer'
-require 'maglevdns/dispatcherthread'
-require 'maglevdns/server'
+    def initialize(client_addr_family, client_host, client_port, sock, request_queue)
+      @client_addr_family = client_addr_family
+      @client_host = client_host
+      @client_port = client_port
+      @sock = sock
+      @request_queue = request_queue
+      super()
+    end
 
-# Listeners
-require 'maglevdns/tcpconnectionthread'
-require 'maglevdns/tcplistener'
-require 'maglevdns/udplistener'
+    private
+    def thread_main
+      puts "TCP connection received" # TODO XXX FIXME
+    ensure
+      # Make sure we always close the socket
+      @sock.close
+    end
 
+  end
+
+end

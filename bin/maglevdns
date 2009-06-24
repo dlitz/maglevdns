@@ -35,11 +35,21 @@ opts = OptionParser.new do |opts|
   end
   opts.on("--listen HOST,PORT", "Listen on the specified host/port combination") do |optarg|
     host, port = optarg.split(",")
+    ipaddr = IPAddr.new(host)
     options[:listener_factory_lambdas] << lambda { |request_queue|
       MaglevDNS::UDPListenerThread.new(
         :request_queue => request_queue,
-        :address_family => Socket::AF_INET6,
-        :bind_address => [host, port]
+        :address_family => ipaddr.family,
+        :host => ipaddr.to_s,
+        :port => port
+      )
+    }
+    options[:listener_factory_lambdas] << lambda { |request_queue|
+      MaglevDNS::TCPListenerThread.new(
+        :request_queue => request_queue,
+        :address_family => ipaddr.family,
+        :host => ipaddr.to_s,
+        :port => port
       )
     }
   end
