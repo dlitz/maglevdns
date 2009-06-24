@@ -28,6 +28,7 @@ module MaglevDNS
 
     # Track the specified thread.
     def add_thread!(thread)
+      raise TypeError if thread.nil?
       @mutex.synchronize {
         @threads << thread
       }
@@ -46,12 +47,24 @@ module MaglevDNS
 
     # Wait for all tracked threads to complete.
     def join
-      @mutex.synchronize {
-        for thread in @threads
-          thread.join
-        end
-      }
-      return nil
+      # NB: We need to be careful here to:
+      # - avoid deadlocking with add_thread!
+      # - make sure we wait for _all_ threads to exit, even threads that were
+      #   not present at the start of this call.
+      loop do
+        # Prune dead threads
+        prune!
+
+        # Get one of the threads
+        t = nil
+        @mutex.synchronize { t = @threads.first }
+
+        # If no more threads are alive, we're done.
+        return if t.nil?
+
+        # Wait for one of the threads to exit.
+        t.join
+      end
     end
 
     # Prune threads that are no longer alive.
