@@ -27,7 +27,7 @@ module MaglevDNS
     end
 
     # Track the specified thread.
-    def << (thread)
+    def add_thread!(thread)
       @mutex.synchronize {
         @threads << thread
       }

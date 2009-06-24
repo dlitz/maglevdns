@@ -16,24 +16,35 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #++
 
-# Version information
-require 'maglevdns/version'
-
-# Abstract data types and base classes
-require 'maglevdns/exception'
-require 'maglevdns/dns'
-require 'maglevdns/request'
 require 'maglevdns/stoppablethread'
 
-# DNS packets flow through the following files (in reverse order)
-require 'maglevdns/scriptevalcontext'
-require 'maglevdns/requesthandler'
-require 'maglevdns/requesthandlerthread'
-require 'maglevdns/threadcontainer'
-require 'maglevdns/dispatcherthread'
-require 'maglevdns/server'
+module MaglevDNS
 
-# Listeners
-require 'maglevdns/udplistener'
-require 'maglevdns/tcplistener'
+  class DispatcherThread < StoppableThread
 
+    def initialize(request_queue, request_handler, thread_container)
+      @request_queue = request_queue
+      @request_handler = request_handler
+      @thread_container = thread_container
+      super()
+    end
+
+    # Ask this thread to stop.
+    def request_stop
+      super { @request_queue << :NOOP }
+    end
+
+    private
+    def thread_main
+      loop do
+        request = @request_queue.shift
+        check_stop
+        next if request == :NOOP
+        @thread_container.add_thread! RequestHandlerThread.new(request, @request_handler)
+        @thread_container.prune!
+      end
+    end
+
+  end
+
+end

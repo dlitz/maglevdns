@@ -45,7 +45,7 @@ module MaglevDNS
 #            :tcp => true,
 #            :address => addr,
 #            :sock => sock,
-#            :respond_proc => proc {|*args| respond(*args) },
+#            :respond_lambda => lambda {|*args| respond(*args) },
 #          }
         end
       end

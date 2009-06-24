@@ -15,28 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #++
-require 'maglevdns/stoppablethread'
 
 module MaglevDNS
-  class RequestHandlerThread < StoppableThread
 
-    def initialize(request, request_handler_class)
-      @request = request
-      @request_handler_class = request_handler_class
-      super
+  class RequestHandler
+
+    def initialize(script_filename)
+      @script_filename = script_filename
     end
 
-    private
-    def thread_main
-      controller = @request_handler_class.new(@request, self)
-      begin
-        controller.handle_query
-      rescue BaseController::ReturnResponse => e
-        unless e.response.nil?
-          @request[:respond_proc].call(@request, e.response.to_s)
-        end
-      end
+    def handle_request(request)
+      ScriptEvalContext.new(request).eval_from_file(@script_filename)
     end
 
   end
+
 end

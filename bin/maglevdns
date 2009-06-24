@@ -17,13 +17,54 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'optparse'
 require 'maglevdns'
 
-class LoadedRequestHandler < MaglevDNS::BaseController
+def exit_usage(opts, rc=1)
+  puts opts
+  exit rc
 end
 
-script_filename = ARGV.first
-#eval(File.read(script_filename), LoadedRequestHandler.send(:binding), script_filename, 1)
-MaglevDNS::main(LoadedRequestHandler)
+options = { :listener_factory_lambdas => [] }
+opts = OptionParser.new do |opts|
+  opts.banner = "Usage: #{$0} [options]"
+  opts.separator ""
+  opts.separator "Specific options"
+  opts.on("--script FILE", "Start a simple script") do |optarg|
+    options[:script] = optarg
+  end
+  opts.on("--listen HOST,PORT", "Listen on the specified host/port combination") do |optarg|
+    host, port = optarg.split(",")
+    options[:listener_factory_lambdas] << lambda { |request_queue|
+      MaglevDNS::UDPListenerThread.new(
+        :request_queue => request_queue,
+        :address_family => Socket::AF_INET6,
+        :bind_address => [host, port]
+      )
+    }
+  end
+  opts.on_tail("-h", "--help", "Show this help") do
+    exit_usage(opts, 0)
+  end
+end
+opts.parse!
+unless ARGV.empty?
+  $stderr.puts "#{$0}: error: This program does not accept arguments"
+  exit_usage(opts)
+end
+if options[:listener_factory_lambdas].empty?
+  $stderr.puts "#{$0}: error: No listeners specified"
+  exit_usage(opts)
+end
+if options[:script].nil?
+  $stderr.puts "#{$0}: error: No script specified"
+  exit_usage(opts)
+end
+
+Thread.abort_on_exception = true
+options[:request_handler] = MaglevDNS::RequestHandler.new(options[:script])
+server = MaglevDNS::Server.new(options)
+server.start
+server.join
 
 # vim:set ts=2 sw=2 sts=2 expandtab:

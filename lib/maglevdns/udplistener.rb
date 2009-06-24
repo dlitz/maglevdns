@@ -37,20 +37,23 @@ module MaglevDNS
           check_stop
           raise "BUG: socket not returned by select()" unless rr.include?(sock)
           msg, addr = sock.recvfrom(65535)
-          @request_queue << {
+          @request_queue << Request.new(
             :listener => self,
             :raw_message => msg,
             :tcp => false,
             :address => addr,
             :sock => sock,
-            :respond_proc => proc {|*args| respond(*args) },
-          }
+            :respond_lambda => lambda { |raw_response|
+              flags = 0
+              host = @address[3]
+              port = @address[1]
+              sock.send(raw_response, flags, host, port)
+            }
+          )
         end
       end
     end
 
-    def respond(request, raw_response)
-      request[:sock].send(raw_response, 0, request[:address][3], request[:address][1])
-    end
+
   end
 end
