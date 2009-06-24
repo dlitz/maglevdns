@@ -43,12 +43,12 @@ module MaglevDNS
       }
     end
 
-    protected
-
     # Throw :STOP_THREAD if request_stop has been called.
     def check_stop
       @mutex.synchronize { throw :STOP_THREAD if @stop_requested }
     end
+
+    protected
 
     def thread_main
       raise "thread_main not implemented"

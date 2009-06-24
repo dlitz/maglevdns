@@ -21,12 +21,19 @@ module MaglevDNS
 
   class ScriptEvalContext
 
+    UDP_QUERY_TIMEOUT = 30  # give up UDP queries after 30 seconds
+    TCP_QUERY_TIMEOUT = 30  # give up TCP queries after 30 seconds
+
     def initialize(request)
       @request = request
     end
 
     def eval_from_file(filename)
       eval(File.read(filename), binding, filename, 1)
+    end
+
+    def check_stop
+      Thread.current.check_stop
     end
 
     # Return the current query (a DNS::Message object)
@@ -71,7 +78,7 @@ module MaglevDNS
     #        over UDP.  The default is to use the same protocol used in the
     #        request, i.e. the return value of the tcp? method.
     def forward_to(host, options={})
-      options = { :tcp => @request[:tcp], :port => 53 }.merge(options)
+      options = { :tcp => tcp?, :port => 53 }.merge(options)
       raise ArgumentError.new("host must not be a network address") if host.include?('/') # HACK: IPAddr doesn't export the prefix length
       host_addr = IPAddr.new(host)
       if options[:tcp]

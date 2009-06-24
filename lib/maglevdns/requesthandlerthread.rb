@@ -30,7 +30,7 @@ module MaglevDNS
     def thread_main
       begin
         @request_handler.handle_request(@request)
-      rescue BaseController::ReturnResponse => e
+      rescue ReturnResponse => e
         unless e.response.nil?
           @request.respond(e.response.to_s)
         end
