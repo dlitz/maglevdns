@@ -18,40 +18,39 @@
 
 require 'socket'
 require 'maglevdns/stoppablethread'
+require 'ipaddr'
 
 module MaglevDNS
   class UDPListenerThread < StoppableThread
 
-    def initialize(options={})
-      @listen_address = {
-        :family => options[:address_family],
-        :bind_args => [options[:host], options[:port]],
-      }
-      @request_queue = options[:request_queue]
+    def initialize(request_queue, host, port)
+      @request_queue = request_queue
+      @af = IPAddr.new(host).family   # Socket::AF_INET or Socket::AF_INET6
+      @host = host
+      @port = port
       super()
     end
 
     private
     def thread_main
-      UDPSocket.open(@listen_address[:family]) do |sock|
-        sock.bind(*@listen_address[:bind_args])
+      UDPSocket.open(@af) do |sock|
+        sock.bind(@host, @port)
         loop do
-          rr = IO::select([@stop_pipe_r, sock], [], [])[0]
+          rr = IO::select([@stop_pipe_r, sock], nil, nil)[0]
           check_stop
           raise "BUG: socket not returned by select()" unless rr.include?(sock)
-          msg, addr = sock.recvfrom(65535)
+          begin
+            msg, addr = sock.recvfrom_nonblock(65535)
+          rescue SystemCallError
+            next
+          end
+          host, port = addr[3], addr[1]
           @request_queue << Request.new(
-            :listener => self,
             :raw_message => msg,
             :tcp => false,
-            :address => addr,
-            :sock => sock,
-            :respond_lambda => lambda { |raw_response|
-              flags = 0
-              host = addr[3]
-              port = addr[1]
-              sock.send(raw_response, flags, host, port)
-            }
+            :client_host => host,
+            :client_port => port,
+            :respond_lambda => lambda { |raw_response| sock.send(raw_response, 0, host, port) }
           )
         end
       end

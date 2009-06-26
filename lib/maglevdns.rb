@@ -27,9 +27,8 @@ require 'maglevdns/stoppablethread'
 
 # DNS packets flow through the following files (in reverse order)
 require 'maglevdns/scriptevalcontext'
-require 'maglevdns/requesthandler'
 require 'maglevdns/requesthandlerthread'
-require 'maglevdns/threadcontainer'
+require 'maglevdns/threadstopper'
 require 'maglevdns/dispatcherthread'
 require 'maglevdns/server'
 

@@ -24,8 +24,16 @@ module MaglevDNS
       @mutex = ::Mutex.new
       @stop_requested = false
       @stop_pipe_r, @stop_pipe_w = ::IO::pipe # pipe used for breaking out of select() calls
+      thread_stopper = Thread.current[:thread_stopper]
+      thread_stopper.add_thread!(self)
+      thread_stopper.prune!
+      raise "BUG: #{self.class.name}#alive? returned false" unless self.alive?
       super() do
         begin
+          # Inherit ThreadStopper instance from parent thread
+          Thread.current[:thread_stopper] = thread_stopper
+
+          # Invoke thread_main
           catch(:STOP_THREAD) { thread_main }
         ensure
           @stop_pipe_r.close

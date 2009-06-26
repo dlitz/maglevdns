@@ -20,16 +20,16 @@ require 'maglevdns/stoppablethread'
 module MaglevDNS
   class RequestHandlerThread < StoppableThread
 
-    def initialize(request, request_handler)
+    def initialize(request, script_filename)
       @request = request
-      @request_handler = request_handler
+      @script_filename = script_filename
       super()
     end
 
     private
     def thread_main
       begin
-        @request_handler.handle_request(@request)
+        ScriptEvalContext.new(@request).eval_from_file(@script_filename)
       rescue ReturnResponse => e
         unless e.response.nil?
           @request.respond(e.response.to_s)

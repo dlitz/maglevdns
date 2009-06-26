@@ -19,10 +19,28 @@
 module MaglevDNS
 
   class Server
+
+    # Initialize a new server using the specified options.
+    #
+    # The following options are supported::
+    # [:script_filename]
+    #   Filename of the script to execute to process incoming queries.
+    # [:listeners]
+    #   An array of descriptors (hashes) describing what listeners to start.
+    #   Each descriptor hash contains the following keys:
+    #     [:host]  host address to listen on (String)
+    #     [:port]  port to listen on (Integer)
     def initialize(opts={})
-      @request_handler = opts[:request_handler]
-      @listener_factory_lambdas = opts[:listener_factory_lambdas]
-      @threads = ThreadContainer.new
+      # Handle option :script_filename
+      File.read(opts[:script_filename])   # Test reading the file; raises exception on failure
+      @script_filename = opts[:script_filename]
+
+      # Handle option :listeners
+      raise ArgumentError.new("No listeners") if opts[:listeners].nil? or opts[:listeners].empty?
+      @listener_descriptors = opts[:listeners]
+
+      Thread.current[:thread_stopper] = ThreadStopper.new unless Thread.current[:thread_stopper]
+      @thread_stopper = Thread.current[:thread_stopper]
       @request_queue = Queue.new
       @started = false
       @finished = false
@@ -35,24 +53,25 @@ module MaglevDNS
       @started = true
 
       # Start listeners
-      for llambda in @listener_factory_lambdas
-        @threads.add_thread! llambda.call(@request_queue)
+      for desc in @listener_descriptors
+        UDPListenerThread.new(@request_queue, desc[:host], desc[:port])
+        TCPListenerThread.new(@request_queue, desc[:host], desc[:port])
       end
 
       # Start dispatcher
-      @threads.add_thread! DispatcherThread.new(@request_queue, @request_handler, @threads)
+      DispatcherThread.new(@request_queue, @script_filename)
 
       return nil
     end
 
     # Request that the server stop
     def request_stop
-      @threads.request_stop
+      @thread_stopper.request_stop
     end
 
     # Wait for the server to stop (typically done after invoking request_stop)
     def join
-      @threads.join
+      @thread_stopper.join
     end
 
   end

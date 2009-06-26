@@ -25,33 +25,18 @@ def exit_usage(opts, rc=1)
   exit rc
 end
 
-options = { :listener_factory_lambdas => [] }
+options = {}
 opts = OptionParser.new do |opts|
   opts.banner = "Usage: #{$0} [options]"
   opts.separator ""
   opts.separator "Specific options"
   opts.on("--script FILE", "Start a simple script") do |optarg|
-    options[:script] = optarg
+    options[:script_filename] = optarg
   end
   opts.on("--listen HOST,PORT", "Listen on the specified host/port combination") do |optarg|
+    options[:listeners] = [] if options[:listeners].nil?
     host, port = optarg.split(",")
-    ipaddr = IPAddr.new(host)
-    options[:listener_factory_lambdas] << lambda { |request_queue|
-      MaglevDNS::UDPListenerThread.new(
-        :request_queue => request_queue,
-        :address_family => ipaddr.family,
-        :host => ipaddr.to_s,
-        :port => port
-      )
-    }
-    options[:listener_factory_lambdas] << lambda { |request_queue|
-      MaglevDNS::TCPListenerThread.new(
-        :request_queue => request_queue,
-        :address_family => ipaddr.family,
-        :host => ipaddr.to_s,
-        :port => port
-      )
-    }
+    options[:listeners] << {:host => host, :port => port}
   end
   opts.on_tail("-h", "--help", "Show this help") do
     exit_usage(opts, 0)
@@ -62,18 +47,18 @@ unless ARGV.empty?
   $stderr.puts "#{$0}: error: This program does not accept arguments"
   exit_usage(opts)
 end
-if options[:listener_factory_lambdas].empty?
+if options[:listeners].nil?
   $stderr.puts "#{$0}: error: No listeners specified"
   exit_usage(opts)
 end
-if options[:script].nil?
+if options[:script_filename].nil?
   $stderr.puts "#{$0}: error: No script specified"
   exit_usage(opts)
 end
 
 Thread.abort_on_exception = true
-options[:request_handler] = MaglevDNS::RequestHandler.new(options[:script])
 server = MaglevDNS::Server.new(options)
+Signal.trap("SIGINT"){ server.request_stop }
 server.start
 server.join
 

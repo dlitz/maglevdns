@@ -22,37 +22,30 @@ require 'maglevdns/stoppablethread'
 module MaglevDNS
   class TCPListenerThread < StoppableThread
 
-    def initialize(options={})
-      @listen_address = {
-        :family => options[:address_family],
-        :bind_args => [Socket::pack_sockaddr_in(options[:port], options[:host])],
-      }
-      @request_queue = options[:request_queue]
+    def initialize(request_queue, host, port)
+      @request_queue = request_queue
+      @af = IPAddr.new(host).family   # Socket::AF_INET or Socket::AF_INET6
+      @host = host
+      @port = port
       super()
     end
 
     private
     def thread_main
-      Socket.open(@listen_address[:family], Socket::Constants::SOCK_STREAM, 0) do |sock|
-        sock.bind(*@listen_address[:bind_args])
+      Socket.open(@af, Socket::Constants::SOCK_STREAM, 0) do |sock|
+        sock.bind(Socket::pack_sockaddr_in(@port, @host))
         sock.listen(10) # XXX - hard-coded backlog
         loop do
-          rr = IO::select([@stop_pipe_r, sock], [], [])[0]
+          rr = IO::select([@stop_pipe_r, sock], nil, nil)[0]
           check_stop
           raise "BUG: socket not returned by select()" unless rr.include?(sock)
-          client_sock, client_addr = sock.accept()
-          port, host = Socket::unpack_sockaddr_in(client_addr)
-          ipaddr = IPAddr.new(host)
-          # TODO FIXME: add thread to ThreadContainer
-          TCPConnectionThread.new(ipaddr.family, ipaddr.to_s, port, client_sock, @request_queue)
-#          @request_queue << {
-#            :listener => self,
-#            :raw_message => msg,
-#            :tcp => true,
-#            :address => client_addr,
-#            :sock => client_sock,
-#            :respond_lambda => lambda {|*args| respond(*args) },
-#          }
+          begin
+            s, raw_client_addr = sock.accept_nonblock()
+          rescue SystemCallError  # XXX: possible source of infinite loops?
+            next
+          end
+          port, host = Socket::unpack_sockaddr_in(raw_client_addr)
+          TCPConnectionThread.new(s, [host, port], @request_queue)
         end
       end
     end

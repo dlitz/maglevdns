@@ -22,10 +22,9 @@ module MaglevDNS
 
   class DispatcherThread < StoppableThread
 
-    def initialize(request_queue, request_handler, thread_container)
+    def initialize(request_queue, script_filename)
       @request_queue = request_queue
-      @request_handler = request_handler
-      @thread_container = thread_container
+      @script_filename = script_filename
       super()
     end
 
@@ -40,8 +39,7 @@ module MaglevDNS
         request = @request_queue.shift
         check_stop
         next if request == :NOOP
-        @thread_container.add_thread! RequestHandlerThread.new(request, @request_handler)
-        @thread_container.prune!
+        RequestHandlerThread.new(request, @script_filename)
       end
     end
 

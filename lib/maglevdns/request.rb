@@ -21,10 +21,9 @@ module MaglevDNS
   class Request
 
     def initialize(opts={})
-      @listener = opts[:listener] or raise ArgumentError.new("option :listener missing")
       @tcp = opts[:tcp] ? true : false
-      @address = opts[:address] or raise ArgumentError.new("option :address missing")
-      @sock = opts[:sock] or raise ArgumentError.new("option :sock missing")
+      @client_host = opts[:client_host] or raise ArgumentError.new("option :client_host missing")
+      @client_port = opts[:client_port] or raise ArgumentError.new("option :client_port missing")
       @respond_lambda = opts[:respond_lambda] or raise ArgumentError.new("option :respond_lambda missing")
       @raw_message = opts[:raw_message] or raise ArgumentError.new("option :raw_message missing")
       @query = nil
@@ -47,12 +46,12 @@ module MaglevDNS
 
     # Return the host part of the network address of the client
     def client_host
-      return @address[3]
+      return @client_host
     end
 
     # Return the client port number
     def client_port
-      return @address[1]
+      return @client_port
     end
 
   end

@@ -19,8 +19,8 @@ require 'thread'
 
 module MaglevDNS
 
-  # Keeps track of running threads.
-  class ThreadContainer
+  # Keeps track of running threads so they can be stopped upon request.
+  class ThreadStopper
     def initialize
       @mutex = Mutex.new
       @threads = []
