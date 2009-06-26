@@ -34,6 +34,9 @@ module MaglevDNS
         unless e.response.nil?
           @request.respond(e.response.to_s)
         end
+      rescue
+        # Swallow exceptions
+        return nil
       end
     end
 
