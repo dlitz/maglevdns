@@ -21,6 +21,10 @@ module MaglevDNS
   # Thread for handling incoming TCP connections
   class TCPConnectionThread < StoppableThread
 
+    IDLE_TIMEOUT = 300  # close idle TCP connections after 5 minutes
+
+    class IdleTimeout < StandardError; end
+
     def initialize(sock, client_addr, request_queue)
       @sock = sock
       @client_host = client_addr[0]
@@ -48,6 +52,8 @@ module MaglevDNS
         sock_write([raw_response.length].pack("n") + raw_response)
       end
       puts "TCP connection closed" # DEBUG FIXME
+    rescue IdleTimeout
+      raise ReturnResponse.new(nil)
     ensure
       # Make sure we always close the socket
       @sock.close
@@ -61,7 +67,9 @@ module MaglevDNS
       buffer = []
       count = 0
       while count < bytes
-        rr = IO::select([@stop_pipe_r, @sock], nil, nil)[0]   # FIXME: timeout
+        result = IO::select([@stop_pipe_r, @sock], nil, nil, IDLE_TIMEOUT)
+        raise IdleTimeout if result.nil?    # timeout
+        rr = result[0]
         check_stop
         raise "BUG: socket not returned by select()" unless rr.include?(@sock)
         begin
@@ -85,7 +93,9 @@ module MaglevDNS
     def sock_write(data)
       pos = 0
       while pos < data.length
-        rr, ww = IO::select([@stop_pipe_r], [@sock], nil)[0,2] # FIXME: timeout
+        result = IO::select([@stop_pipe_r], [@sock], nil, IDLE_TIMEOUT)
+        raise IdleTimeout if result.nil?    # timeout
+        rr, ww = result[0,2]
         check_stop
         raise "BUG: socket not returned by select()" unless ww.include?(@sock)
         begin
