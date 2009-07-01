@@ -57,6 +57,7 @@ if options[:script_filename].nil?
 end
 
 Thread.abort_on_exception = true
+Socket.do_not_reverse_lookup = true # Disable stupid automatic DNS lookup in Socket#recvfrom
 server = MaglevDNS::Server.new(options)
 Signal.trap("SIGINT"){ server.request_stop }
 server.start

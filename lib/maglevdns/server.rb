@@ -31,6 +31,14 @@ module MaglevDNS
     #     [:host]  host address to listen on (String)
     #     [:port]  port to listen on (Integer)
     def initialize(opts={})
+      # By default, Ruby blocks when calling UDPSocket#recvfrom_nonblock (and
+      # probably Socket#accept_nonblock) in order to look up the client
+      # hosts's canonical name in the DNS.  Make sure this brain-damaged
+      # behaviour is disabled.
+      unless Socket.do_not_reverse_lookup
+        raise RuntimeError.new("Socket.do_not_reverse_lookup must be true")
+      end
+
       # Handle option :script_filename
       File.read(opts[:script_filename])   # Test reading the file; raises exception on failure
       @script_filename = opts[:script_filename]

@@ -26,6 +26,12 @@ module MaglevDNS
     class IdleTimeout < StandardError; end
 
     def initialize(sock, client_addr, request_queue)
+      # Ruby stupidly does a DNS lookup when you do a Socket#recvfrom.
+      # This breaks DNS services, obviously.
+      unless Socket.do_not_reverse_lookup
+        raise RuntimeError.new("Socket.do_not_reverse_lookup must be true")
+      end
+
       @sock = sock
       @client_host = client_addr[0]
       @client_port = client_addr[1]

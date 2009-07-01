@@ -23,6 +23,14 @@ module MaglevDNS
   class TCPListenerThread < StoppableThread
 
     def initialize(request_queue, host, port)
+      # By default, Ruby blocks when calling UDPSocket#recvfrom_nonblock (and
+      # probably Socket#accept_nonblock) in order to look up the client
+      # hosts's canonical name in the DNS.  Make sure this brain-damaged
+      # behaviour is disabled.
+      unless Socket.do_not_reverse_lookup
+        raise RuntimeError.new("Socket.do_not_reverse_lookup must be true")
+      end
+
       @request_queue = request_queue
       @af = IPAddr.new(host).family   # Socket::AF_INET or Socket::AF_INET6
       @host = host
