@@ -63,11 +63,18 @@ module MaglevDNS
       return false
     end
 
-    # Return true if the query is for a name in the specified zone.
-    def match_zone?(zone)
-      q = query.qname.map { |label| label.downcase }
-      z = DNS.parse_display_name(zone.downcase)
-      return z == q[-z.length..-1]  # Return true if q ends with z
+    # Return true if the query is for a name in the specified list of zones.
+    # The parameter may also be a single address.
+    def match_zone?(zones)
+      if zones.is_a?(String)
+        zone = zones
+        q = query.qname.map { |label| label.downcase }
+        z = DNS.parse_display_name(zone.downcase)
+        return z == q[-z.length..-1]  # Return true if q ends with z
+      else
+        zones.each { |zone| return true if match_zone?(zone) }
+        return false
+      end
     end
 
     # Forward the current query to the specified host.
