@@ -59,7 +59,8 @@ module MaglevDNS
       end
       puts "TCP connection closed" # DEBUG FIXME
     rescue IdleTimeout
-      raise ReturnResponse.new(nil)
+      # Do nothing if the connection times out
+      # XXX - should log here
     ensure
       # Make sure we always close the socket
       @sock.close
