@@ -32,7 +32,7 @@ module MaglevDNS
         ScriptEvalContext.new(@request).eval_from_file(@script_filename)
       rescue ReturnResponse => e
         unless e.response.nil?
-          @request.respond(e.response.to_s)
+          @request.respond(e.response)
         end
       rescue
         # Swallow exceptions

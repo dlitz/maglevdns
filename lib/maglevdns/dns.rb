@@ -55,6 +55,12 @@ module MaglevDNS
       return name.map{|label| label.gsub(/([\\.])/, '\\\1')}.join(".").select{ |label| not label.empty? }
     end
 
+    # DNS::Types
+    module Types
+      SOA = 6
+      AXFR = 252
+    end
+
     module HeaderParser
 
       # RCODE values

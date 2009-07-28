@@ -46,6 +46,11 @@ module MaglevDNS
       return @request.tcp?
     end
 
+    # Return true if this is an AXFR query.
+    def axfr?
+      return @request.axfr?
+    end
+
     # Return true if the RD bit was set in the query.
     def recursion_desired?
       return query.rd
@@ -143,15 +148,45 @@ module MaglevDNS
 
         sock.send([raw_query.length].pack("n") + raw_query, 0)
 
-        t0 = Time.now
-        raw_length = ""
-        while Time.now - t0 < TCP_QUERY_TIMEOUT
-          raw_len = recv_lambda.call(sock, t0, 2)
-          raise ReturnResponse.new(nil) if raw_len.nil? or raw_len.length != 2  # timeout
-          len = raw_len.unpack("n")[0]
-          raw_response = recv_lambda.call(sock, t0, len)
-          raise ReturnResponse.new(nil) if raw_response.nil? or raw_response.length != len  # timeout
-          raise ReturnResponse.new(raw_response)
+        if axfr?
+          # HACK - special case for AXFR
+          response_messages = []
+          soa_records = 0
+
+          loop {
+            t0 = Time.now
+            raw_length = ""
+            raw_response = nil
+            while Time.now - t0 < TCP_QUERY_TIMEOUT
+              raw_len = recv_lambda.call(sock, t0, 2)
+              raise ReturnResponse.new(nil) if raw_len.nil? or raw_len.length != 2  # timeout
+              len = raw_len.unpack("n")[0]
+              raw_response = recv_lambda.call(sock, t0, len)
+              raise ReturnResponse.new(nil) if raw_response.nil? or raw_response.length != len  # timeout
+              #raise ReturnResponse.new(raw_response)
+              break
+            end
+            raise ReturnResponse.new(nil) if raw_response.nil? # timeout
+            response_messages << raw_response
+
+            # Stop after the final SOA record
+            for rr in DNS::Message.new(raw_response).answer
+              soa_records += 1 if rr.type == DNS::Types::SOA
+            end
+            raise ReturnResponse.new(response_messages) if soa_records >= 2
+          }
+        else
+          # Normal query handling
+          t0 = Time.now
+          raw_length = ""
+          while Time.now - t0 < TCP_QUERY_TIMEOUT
+            raw_len = recv_lambda.call(sock, t0, 2)
+            raise ReturnResponse.new(nil) if raw_len.nil? or raw_len.length != 2  # timeout
+            len = raw_len.unpack("n")[0]
+            raw_response = recv_lambda.call(sock, t0, len)
+            raise ReturnResponse.new(nil) if raw_response.nil? or raw_response.length != len  # timeout
+            raise ReturnResponse.new(raw_response)
+          end
         end
       end
     end

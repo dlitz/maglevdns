@@ -34,6 +34,10 @@ module MaglevDNS
       return @tcp
     end
 
+    def axfr?
+      return query.qtype == DNS::Types::AXFR
+    end
+
     def query
       return @query unless @query.nil?
       @query = MaglevDNS::DNS::Message.new(@raw_message)
@@ -41,7 +45,7 @@ module MaglevDNS
     end
 
     def respond(response)
-      @respond_lambda.call(response.to_s)
+      @respond_lambda.call(response)
     end
 
     # Return the host part of the network address of the client

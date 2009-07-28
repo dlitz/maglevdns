@@ -52,10 +52,18 @@ module MaglevDNS
           :tcp => true,
           :client_host => @client_host,
           :client_port => @client_port,
-          :respond_lambda => lambda { |raw_response| response_queue << raw_response }
+          :respond_lambda => lambda { |response| response_queue << response }
         )
-        raw_response = response_queue.shift # FIXME: timeout
-        sock_write([raw_response.length].pack("n") + raw_response)
+        response = response_queue.shift # FIXME: timeout
+        if response.is_a? Array   # AXFR
+          for r in response
+            raw_response = r.to_s
+            sock_write([raw_response.length].pack("n") + raw_response)
+          end
+        else
+          raw_response = response.to_s
+          sock_write([raw_response.length].pack("n") + raw_response)
+        end
       end
       puts "TCP connection closed" # DEBUG FIXME
     rescue IdleTimeout

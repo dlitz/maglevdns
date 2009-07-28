@@ -58,7 +58,7 @@ module MaglevDNS
             :tcp => false,
             :client_host => host,
             :client_port => port,
-            :respond_lambda => lambda { |raw_response| sock.send(raw_response, 0, host, port) }
+            :respond_lambda => lambda { |response| sock.send(response.to_s, 0, host, port) }
           )
         end
       end
