@@ -298,12 +298,43 @@ module MaglevDNS
     end
 
     class RR
-      def initialize(msg, section, i, raw_rr)
+      def initialize(msg, section, i, offset, raw_rr)
         @msg = msg
         @section = section
         @i = i
+        @offset = offset
         @raw = raw_rr
+        @name_length = raw_name.length  # cached
       end
+
+      def raw_name
+        @msg.send(:raw_name_at, @offset)
+      end
+
+      def name
+        @msg.send(:name_at, @offset)
+      end
+
+      def type
+        @raw[@name_length,2].unpack("n")[0]
+      end
+
+      def klass
+        @raw[@name_length+2,2].unpack("n")[0]
+      end
+
+      def ttl
+        @raw[@name_length+4,4].unpack("N")[0]
+      end
+
+      def rdlength
+        @raw[@name_length+8,2].unpack("n")[0]
+      end
+
+      def rdata
+        @raw[@name_length+10,rdlength]
+      end
+
     end
 
     class Section
@@ -315,7 +346,7 @@ module MaglevDNS
       end
 
       def [](i)
-        @msg.send(:rr_at_index, i)
+        @msg.send(:rr_at_index, @section, i)
       end
 
       def length
@@ -348,11 +379,11 @@ module MaglevDNS
 
       protected
       def rr_at_index(section, i)
-        rrcache = @cache[section][i]
-        offset = rrcache[:offset]
-        length = rrcache[:length]
+        rrcache = @cache[section]
+        offset = rrcache[:record_offsets][i]
+        length = rrcache[:record_lengths][i]
         raw_rr = @msg[offset,length]
-        return RR.new(self, :section, i, raw_rr)
+        return RR.new(self, :section, i, offset, raw_rr)
       end
 
       def raw_rr_at(offset)
