@@ -18,7 +18,7 @@
 
 require 'rubygems'
 
-RDOC_FILES = FileList['COPYING.*', 'lib/**/*.rb']
+RDOC_FILES = FileList['README', 'COPYING.*', 'lib/**/*.rb']
 
 gemspec = eval(File.read('maglevdns.gemspec'), binding, "maglevdns.gemspec", 1)
 require 'rake/gempackagetask'
@@ -29,7 +29,7 @@ end
 
 require 'rake/rdoctask'
 Rake::RDocTask.new do |rd|
-  rd.main = "MaglevDNS"
+  rd.main = "README"
   rd.title = "MaglevDNS - RDoc Documentation"
   rd.rdoc_files = RDOC_FILES
   rd.options += %w{ --charset UTF-8 --line-numbers }
