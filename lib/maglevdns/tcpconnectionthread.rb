@@ -42,7 +42,6 @@ module MaglevDNS
     private
     def thread_main
       response_queue = Queue.new
-      puts "TCP connection received" # TODO XXX FIXME
       loop do
         len = sock_read(2).unpack("n")[0]
         break if len.nil?  # connection closed
@@ -65,7 +64,6 @@ module MaglevDNS
           sock_write([raw_response.length].pack("n") + raw_response)
         end
       end
-      puts "TCP connection closed" # DEBUG FIXME
     rescue IdleTimeout
       # Do nothing if the connection times out
       # XXX - should log here
