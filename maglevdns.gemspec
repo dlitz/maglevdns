@@ -4,10 +4,9 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.name = "maglevdns"
   s.version = MaglevDNS::PKG_VERSION
-  s.summary = "DNS application framework"
+  s.summary = "Programmable DNS forwarder"
   s.description = <<-EOF.strip.gsub(/\n\s+/, ' ')
-    MaglevDNS is a DNS application framework, similar to Ruby on Rails but
-    for DNS queries instead of HTTP requests.
+    MaglevDNS is a programmable DNS forwarder.
   EOF
   s.authors = ["Dwayne C. Litzenberger"]
   s.email = ["dlitz@dlitz.net"]
