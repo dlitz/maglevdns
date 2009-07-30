@@ -1,0 +1,7 @@
+MaglevDNS to-do list
+~~~~~~~~~~~~~~~~~~~~
+- Look at replacing MaglevDNS::DNS with Net::DNS
+- Add logging, since there currently is none.
+- There are still a few places where there should be timeouts.  Add them.
+- Fix FIXMEs, and generally make the code less ugly.
+- Support for other things besides forwarding.

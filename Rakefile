@@ -18,7 +18,7 @@
 
 require 'rubygems'
 
-RDOC_FILES = FileList['README', 'COPYING.*', 'lib/**/*.rb']
+RDOC_FILES = FileList['README', 'COPYING.*', 'TODO', 'lib/**/*.rb']
 
 gemspec = eval(File.read('maglevdns.gemspec'), binding, "maglevdns.gemspec", 1)
 require 'rake/gempackagetask'
