@@ -4,9 +4,13 @@ Not to be confused with the real "MagLev" project.
 
 = Quick Start
 
-1. gem install maglevdns
-2. Copy and edit one of the examples from the examples/ directory.
-3. sudo maglevdns --script my-script.rb
+1. git clone git://git.dlitz.net/maglevdns.git
+2. cd maglevdns
+3. rake gem
+4. gem install pkg/*.gem
+5. Copy one of the examples from the examples/ directory to my-script.rb
+6. Edit my-script.rb
+7. sudo maglevdns --script my-script.rb
 
 = License
 
