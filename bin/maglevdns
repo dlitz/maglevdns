@@ -41,6 +41,9 @@ opts = OptionParser.new do |opts|
   opts.on_tail("-h", "--help", "Show this help") do
     exit_usage(opts, 0)
   end
+  opts.separator ""
+  opts.separator "By default, 0.0.0.0,53 will be used if --listen is not specified."
+  opts.separator "If you have IPv6 support, you may want to use --listen ::,53 instead"
 end
 opts.parse!
 unless ARGV.empty?
@@ -48,8 +51,7 @@ unless ARGV.empty?
   exit_usage(opts)
 end
 if options[:listeners].nil?
-  $stderr.puts "#{$0}: error: No listeners specified"
-  exit_usage(opts)
+  options[:listeners] = [{:host => "0.0.0.0", :port => 53}]
 end
 if options[:script_filename].nil?
   $stderr.puts "#{$0}: error: No script specified"
